@@ -17,7 +17,7 @@ Initialize a global dictionary of images. This will be called exactly once in th
 def loadImages():
     pieces = ["wp", "wR", "wN", "wB", "wQ", "wK", "bp", "bR", "bN", "bB", "bQ", "bK"]
     for piece in pieces:
-        IMAGES[piece] = p.transform.scale(p.image.load(piece + ".png"), (SquareSize, SquareSize))
+        IMAGES[piece] = p.transform.scale(p.image.load("Images/" + piece + ".png"), (SquareSize, SquareSize))
     #Note: we can access an image by saying 'IMAGES['wp']'
 
 '''
