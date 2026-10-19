@@ -21,11 +21,90 @@ class GameState():
         self.whiteToMove = True
         self.moveLog = []
 
+    '''
+    Takes a Move as a parameter and executes it (this will not work for castling, en passant, and promoting)
+    '''
     def makeMove(self, move):
         self.board[move.startRow][move.startColumn] = "--"
         self.board[move.endRow][move.endColumn] = move.pieceMoved
         self.moveLog.append(move) # log the move so we can undo it later
         self.whiteToMove = not self.whiteToMove # swap players
+
+    '''
+    Undo the last move made
+    '''
+    def undoMove(self):
+        if len(self.moveLog) != 0: # make sure there is a move to undo
+            move = self.moveLog.pop()
+            self.board[move.startRow][move.startColumn] = move.pieceMoved
+            self.board[move.endRow][move.endColumn] = move.pieceCaptured
+            self.whiteToMove = not self.whiteToMove # swap players
+
+    '''
+    All moves considering checks
+    '''
+    def getValidMoves(self):
+        return self.getAllPossibleMoves() # For now we will not consider checks
+
+    '''
+    All moves without considering checks
+    '''
+    def getAllPossibleMoves(self):
+        moves = []
+        for r in range(len(self.board)): # Number of rows
+            for c in range(len(self.board[r])): # Number of columns
+                turn = self.board[r][c][0]
+                if (turn == "w" and self.whiteToMove) or (turn == "b" and not self.whiteToMove):
+                    piece = self.board[r][c][1] # type of piece
+                    if piece == "p":
+                        self.getPawnMoves(r, c, moves)
+                    elif piece == "R":
+                        self.getRookMoves(r, c, moves)
+                    elif piece == "N":
+                        self.getKnightMoves(r, c, moves)
+                    elif piece == "B":
+                        self.getBishopMoves(r, c, moves)
+                    elif piece == "Q":
+                        self.getQueenMoves(r, c, moves)
+                    elif piece == "K":
+                        self.getKingMoves(r, c, moves)
+        return moves
+
+    '''
+    Get all the pawn moves for the pawn located at row, column and add these moves to the list
+    '''
+    def getPawnMoves(self, r, c, moves):
+        pass
+
+    '''
+    Get all the rook moves for the pawn located at row, column and add these moves to the list
+    '''
+    def getRookMoves(self, r, c, moves):
+        pass
+
+    '''
+    Get all the knight moves for the pawn located at row, column and add these moves to the list
+    '''
+    def getKnightMoves(self, r, c, moves):
+        pass
+
+    '''
+    Get all the bishop moves for the pawn located at row, column and add these moves to the list
+    '''
+    def getBishopMoves(self, r, c, moves):
+        pass
+
+    '''
+    Get all the queen moves for the pawn located at row, column and add these moves to the list
+    '''
+    def getQueenMoves(self, r, c, moves):
+        pass
+
+    '''
+    Get all the king moves for the pawn located at row, column and add these moves to the list
+    '''
+    def getKingMoves(self, r, c, moves):
+        pass
     
 class Move():
     # maps keys to values
@@ -43,6 +122,15 @@ class Move():
         self.endColumn = endSquare[1]
         self.pieceMoved = board[startSquare[0]][startSquare[1]]
         self.pieceCaptured = board[endSquare[0]][endSquare[1]]
+        self.moveId = self.startRow * 1000 + self.startColumn * 100 + self.endRow * 10 + self.endColumn
+
+    '''
+    Overriding the equals Method
+    '''
+    def __eq__(self, other) -> bool:
+        if isinstance(other, Move):
+            return self.moveId == other.moveId
+        return False
 
     def getChessNotation(self):
         # you can add to make this like "e2e4" or "e7e8q" later
