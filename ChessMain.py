@@ -3,7 +3,7 @@ Main Driver file responsible for handling user input and displaying the current 
 """
 
 import pygame as p
-import ChessEngine
+import ChessEngine, SmartMoveFinder
 
 Width = Height = 512 # 400 pixels is another alternative
 DIMENSION = 8 # chessboard is 8x8
@@ -37,13 +37,16 @@ def main():
     squareSelected = () # no square is selected, keep track of the last click of the user (tuple: (row, column))
     playerClicks = [] # keep track of the player clicks (two tuples: [(6, 4), (4, 4)]
     gameOver = False
+    playerOne = True # If a human is playing white, then this will be True. If an AI is playing, then this will be False.
+    playerTwo = False # Same as above but for black.
     while running:
+        humanTurn = (gs.whiteToMove and playerOne) or (not gs.whiteToMove and playerTwo)
         for e in p.event.get():
             if e.type == p.QUIT:
                 running = False
             # mouse handler
             elif e.type == p.MOUSEBUTTONDOWN:
-                if not gameOver:
+                if not gameOver and humanTurn:
                     location = p.mouse.get_pos() # (x,y) coordinates of the mouse click
                     col = location[0] // SquareSize
                     row = location[1] // SquareSize
@@ -78,6 +81,12 @@ def main():
                     playerClicks = []
                     moveMade = False
                     animate = False
+        # AI move finder logic
+        if not gameOver and not humanTurn:
+            AIMove = SmartMoveFinder.findRandomMove(validMoves)
+            gs.makeMove(AIMove)
+            moveMade = True
+            animate = True
         if moveMade:
             if animate:
                 animateMove(gs.moveLog[-1], screen, gs.board, clock)
