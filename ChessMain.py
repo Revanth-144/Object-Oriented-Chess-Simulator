@@ -38,7 +38,7 @@ def main():
     playerClicks = [] # keep track of the player clicks (two tuples: [(6, 4), (4, 4)]
     gameOver = False
     playerOne = True # If a human is playing white, then this will be True. If an AI is playing, then this will be False.
-    playerTwo = False # Same as above but for black.
+    playerTwo = True # Same as above but for black.
     while running:
         humanTurn = (gs.whiteToMove and playerOne) or (not gs.whiteToMove and playerTwo)
         for e in p.event.get():
@@ -83,7 +83,9 @@ def main():
                     animate = False
         # AI move finder logic
         if not gameOver and not humanTurn:
-            AIMove = SmartMoveFinder.findRandomMove(validMoves)
+            AIMove = SmartMoveFinder.findBestMove(gs, validMoves)
+            if AIMove is None:
+                AIMove = SmartMoveFinder.findRandomMove(validMoves)
             gs.makeMove(AIMove)
             moveMade = True
             animate = True
