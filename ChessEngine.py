@@ -25,6 +25,7 @@ class GameState():
         self.blackKingLocation = (0, 4)
         self.checkMate = False
         self.staleMate = False
+        self.enPassantPossible = () # coordinates for the square where en passant capture is possible
 
     '''
     Takes a Move as a parameter and executes it (this will not work for castling, en passant, and promoting)
@@ -40,6 +41,19 @@ class GameState():
         elif move.pieceMoved == "bK":
             self.blackKingLocation = (move.endRow, move.endColumn)
 
+        # pawn promotion
+        if move.isPawnPromotion:
+            self.board[move.endRow][move.endColumn] = move.pieceMoved[0] + 'Q' # promote to queen for now
+
+        # en passant move
+        if move.isEnpassantMove:
+            self.board[move.startRow][move.endColumn] = "--" # capturing the pawn
+        # update enPassantPossible variable
+        if move.pieceMoved[1] == 'p' and abs(move.startRow - move.endRow) == 2: # only on 2 square pawn advances
+            self.enPassantPossible = ((move.startRow + move.endRow)//2, move.startColumn)
+        else:
+            self.enPassantPossible = ()
+
     '''
     Undo the last move made
     '''
@@ -54,11 +68,21 @@ class GameState():
                 self.whiteKingLocation = (move.startRow, move.startColumn)
             elif move.pieceMoved == "bK":
                 self.blackKingLocation = (move.startRow, move.startColumn)
+            # undo en passant move
+            if move.isEnpassantMove:
+                self.board[move.endRow][move.endColumn] = "--" # leave landing square blank
+                self.board[move.startRow][move.endColumn] = move.pieceCaptured
+                self.enPassantPossible = (move.endRow, move.endColumn) # restore the enPassantPossible square
+            # undo a 2 square pawn advance
+            if move.pieceMoved[1] == 'p' and abs(move.startRow - move.endRow) == 2:
+                self.enPassantPossible = () # reset enPassantPossible if a pawn has moved two squares
+            
 
     '''
     All moves considering checks
     '''
     def getValidMoves(self):
+        tempEnPassantPossible = self.enPassantPossible # Store the current enPassantPossible value
         # 1) Generate all possible moves
         moves = self.getAllPossibleMoves()
         # 2) For each move, make the move
@@ -79,6 +103,7 @@ class GameState():
         else:
             self.checkMate = False
             self.staleMate = False
+        self.enPassantPossible = tempEnPassantPossible # Restore the enPassantPossible value
         return moves
 
     '''
@@ -124,19 +149,32 @@ class GameState():
                 moves.append(Move((r, c), (r-1, c), self.board))
                 if r == 6 and self.board[r-2][c] == "--": # 2 square pawn advance
                     moves.append(Move((r, c), (r-2, c), self.board))
-            if c-1 >= 0 and self.board[r-1][c-1][0] == "b": # Enemy piece to capture on the left
-                moves.append(Move((r, c), (r-1, c-1), self.board))
-            if c+1 <= 7 and self.board[r-1][c+1][0] == "b": # Enemy piece to capture on the right
-                moves.append(Move((r, c), (r-1, c+1), self.board))
+            if c-1 >= 0: # Enemy piece to capture on the left
+                if self.board[r-1][c-1][0] == "b":
+                    moves.append(Move((r, c), (r-1, c-1), self.board))
+                elif (r-1, c-1) == self.enPassantPossible:
+                    moves.append(Move((r, c), (r-1, c-1), self.board, isEnpassantMove=True))
+
+            if c+1 <= 7: # Enemy piece to capture on the right
+                if self.board[r-1][c+1][0] == "b":
+                    moves.append(Move((r, c), (r-1, c+1), self.board))
+                elif (r-1, c+1) == self.enPassantPossible:
+                    moves.append(Move((r, c), (r-1, c+1), self.board, isEnpassantMove=True))
         else: # Black pawn moves
             if self.board[r+1][c] == "--": # Empty square on one row advance
                 moves.append(Move((r, c), (r+1, c), self.board))
                 if r == 1 and self.board[r+2][c] == "--": # 2 square pawn advance
                     moves.append(Move((r, c), (r+2, c), self.board))
-            if c-1 >= 0 and self.board[r+1][c-1][0] == "w": # Enemy piece to capture on the left
-                moves.append(Move((r, c), (r+1, c-1), self.board))
-            if c+1 <= 7 and self.board[r+1][c+1][0] == "w": # Enemy piece to capture on the right
-                moves.append(Move((r, c), (r+1, c+1), self.board))
+            if c-1 >= 0: # Enemy piece to capture on the left
+                if self.board[r+1][c-1][0] == "w":
+                    moves.append(Move((r, c), (r+1, c-1), self.board))
+                elif (r+1, c-1) == self.enPassantPossible:
+                    moves.append(Move((r, c), (r+1, c-1), self.board, isEnpassantMove=True))
+            if c+1 <= 7: # Enemy piece to capture on the right
+                if self.board[r+1][c+1][0] == "w":
+                    moves.append(Move((r, c), (r+1, c+1), self.board))
+                elif (r+1, c+1) == self.enPassantPossible:
+                    moves.append(Move((r, c), (r+1, c+1), self.board, isEnpassantMove=True))
         # Add pawn promotion later
 
     '''
@@ -227,13 +265,17 @@ class Move():
     filesToColumns = {"a": 0, "b": 1, "c": 2, "d": 3, "e": 4, "f": 5, "g": 6, "h": 7}
     columnsToFiles = {v: k for k, v in filesToColumns.items()}
 
-    def __init__(self, startSquare, endSquare, board):
+    def __init__(self, startSquare, endSquare, board, isEnpassantMove=False):
         self.startRow = startSquare[0]
         self.startColumn = startSquare[1]
         self.endRow = endSquare[0]
         self.endColumn = endSquare[1]
         self.pieceMoved = board[startSquare[0]][startSquare[1]]
         self.pieceCaptured = board[endSquare[0]][endSquare[1]]
+        self.isPawnPromotion = (self.pieceMoved == "wp" and self.endRow == 0) or (self.pieceMoved == "bp" and self.endRow == 7)
+        self.isEnpassantMove = isEnpassantMove
+        if self.isEnpassantMove:
+            self.pieceCaptured = "wp" if self.pieceMoved == "bp" else "bp"
         self.moveId = self.startRow * 1000 + self.startColumn * 100 + self.endRow * 10 + self.endColumn
 
     '''
