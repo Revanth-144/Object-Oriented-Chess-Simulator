@@ -98,6 +98,8 @@ class GameState():
                 else: # queenside
                     self.board[move.endRow][move.endColumn-2] = self.board[move.endRow][move.endColumn+1]
                     self.board[move.endRow][move.endColumn+1] = "--"
+            self.checkMate = False
+            self.staleMate = False
 
     '''
     Update the castle rights given the move
