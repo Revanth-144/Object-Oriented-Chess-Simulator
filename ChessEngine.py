@@ -26,6 +26,7 @@ class GameState():
         self.checkMate = False
         self.staleMate = False
         self.enPassantPossible = () # coordinates for the square where en passant capture is possible
+        self.enPassantPossibleLog = [self.enPassantPossible]
         self.currentCastlingRight = CastleRights(True, True, True, True)
         self.castleRightsLog = [CastleRights(self.currentCastlingRight.wks, self.currentCastlingRight.bks, self.currentCastlingRight.wqs, self.currentCastlingRight.bqs)]
 
@@ -61,6 +62,7 @@ class GameState():
             else: # queenside castle move
                 self.board[move.endRow][move.endColumn+1] = self.board[move.endRow][move.endColumn-2] # moves the rook
                 self.board[move.endRow][move.endColumn-2] = "--" # erase old rook
+        self.enPassantPossibleLog.append(self.enPassantPossible) # log the en passant possible variable
         # update castling rights - whenever it is a rook or a king move
         self.updateCastleRights(move)
         self.castleRightsLog.append(CastleRights(self.currentCastlingRight.wks, self.currentCastlingRight.bks, self.currentCastlingRight.wqs, self.currentCastlingRight.bqs))
@@ -83,10 +85,8 @@ class GameState():
             if move.isEnpassantMove:
                 self.board[move.endRow][move.endColumn] = "--" # leave landing square blank
                 self.board[move.startRow][move.endColumn] = move.pieceCaptured
-                self.enPassantPossible = (move.endRow, move.endColumn) # restore the enPassantPossible square
-            # undo a 2 square pawn advance
-            if move.pieceMoved[1] == 'p' and abs(move.startRow - move.endRow) == 2:
-                self.enPassantPossible = () # reset enPassantPossible if a pawn has moved two squares
+            self.enPassantPossibleLog.pop() # get rid of the old en passant possible square
+            self.enPassantPossible = self.enPassantPossibleLog[-1] # set the en passant possible square to the last one in the list
             # undo castling rights
             self.castleRightsLog.pop() # get rid of the new castle rights from the move we are undoing
             self.currentCastlingRight = CastleRights(self.castleRightsLog[-1].wks, self.castleRightsLog[-1].bks, self.castleRightsLog[-1].wqs, self.castleRightsLog[-1].bqs) # set the current castle rights to the last one in the list
@@ -122,7 +122,20 @@ class GameState():
                 if move.startColumn == 0: # left rook
                     self.currentCastlingRight.bqs = False
                 elif move.startColumn == 7: # right rook
-                    self.currentCastlingRight.bks = False            
+                    self.currentCastlingRight.bks = False
+        # if a rook is captured
+        if move.pieceCaptured == 'wR':
+            if move.endRow == 7:
+                if move.endColumn == 0: # left rook
+                    self.currentCastlingRight.wqs = False
+                elif move.endColumn == 7: # right rook
+                    self.currentCastlingRight.wks = False
+        elif move.pieceCaptured == 'bR':
+            if move.endRow == 0:
+                if move.endColumn == 0: # left rook
+                    self.currentCastlingRight.bqs = False
+                elif move.endColumn == 7: # right rook
+                    self.currentCastlingRight.bks = False         
 
     '''
     All moves considering checks
