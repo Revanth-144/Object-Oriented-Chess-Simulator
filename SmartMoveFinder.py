@@ -56,7 +56,6 @@ def findBestMove(gs, validMoves):
     # findMoveMinMax(gs, validMoves, DEPTH, gs.whiteToMove)
     # findMoveNegaMax(gs, validMoves, DEPTH, 1 if gs.whiteToMove else -1)
     findMoveNegaMaxAlphaBeta(gs, validMoves, DEPTH, -checkMate, checkMate, 1 if gs.whiteToMove else -1)
-    print("Number of positions evaluated: ", counter)
     return nextMove
 
 def findMoveMinMax(gs, validMoves, depth, whiteToMove):
