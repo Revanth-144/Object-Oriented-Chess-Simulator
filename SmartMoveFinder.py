@@ -1,6 +1,56 @@
 import random
 
 pieceScore = {"K": 0, "Q": 10, "R": 5, "B": 3, "N": 3, "p": 1}
+
+knightScores = [[0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 1, 2, 2, 2, 2, 1, 0],
+                [0, 2, 3, 4, 4, 3, 2, 0],
+                [0, 2, 4, 5, 5, 4, 2, 0],
+                [0, 2, 4, 5, 5, 4, 2, 0],
+                [0, 2, 3, 4, 4, 3, 2, 0],
+                [0, 1, 2, 2, 2, 2, 1, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0]]
+
+bishopScores = [[4, 3, 2, 1, 1, 2, 3, 4],
+                [3, 4, 3, 2, 2, 3, 4, 3],
+                [2, 3, 4, 3, 3, 4, 3, 2],
+                [1, 2, 3, 4, 4, 3, 2, 1],
+                [1, 2, 3, 4, 4, 3, 2, 1],
+                [2, 3, 4, 3, 3, 4, 3, 2],
+                [3, 4, 3, 2, 2, 3, 4, 3],
+                [4, 3, 2, 1, 1, 2, 3, 4]]
+
+QueenScores = [[1, 1, 1, 1, 1, 1, 1, 1],
+               [1, 2, 2, 2, 2, 2, 2, 1],
+               [1, 2, 3, 3, 3, 3, 2, 1],
+               [1, 2, 3, 4, 4, 3, 2, 1],
+               [1, 2, 3, 4, 4, 3, 2, 1],
+               [1, 2, 3, 3, 3, 3, 2, 1],
+               [1, 2, 2, 2, 2, 2, 2, 1],
+               [1, 1, 1, 1, 1, 1, 1, 1]]
+
+# probably better to try to place rooks on open files, or on same file as other rook/queen
+rookScores = [[4, 3, 4, 4, 4, 4, 3, 4],
+              [4, 4, 4, 4, 4, 4, 4, 4],
+              [1, 1, 2, 3, 3, 2, 1, 1],
+              [1, 2, 3, 4, 4, 3, 2, 1],
+              [1, 2, 3, 4, 4, 3, 2, 1],
+              [1, 1, 2, 3, 3, 2, 1, 1],
+              [4, 4, 4, 4, 4, 4, 4, 4],
+              [4, 3, 4, 4, 4, 4, 3, 4]]
+
+whitePawnScores = [[8, 8, 8, 8, 8, 8, 8, 8],
+                   [8, 8, 8, 8, 8, 8, 8, 8],
+                   [5, 6, 6, 7, 7, 6, 6, 5],
+                   [2, 3, 3, 5, 5, 3, 3, 2],
+                   [1, 2, 3, 4, 4, 3, 2, 1],
+                   [1, 1, 2, 3, 3, 2, 1, 1],
+                   [1, 1, 1, 0, 0, 1, 1, 1],
+                   [0, 0, 0, 0, 0, 0, 0, 0]]
+
+blackPawnScores = whitePawnScores[::-1]
+
+piecePositionScores = {"N": knightScores, "B": bishopScores, "Q": QueenScores, "R": rookScores, "wp": whitePawnScores, "bp": blackPawnScores}
 checkMate = 1000
 staleMate = 0
 DEPTH = 3
@@ -18,6 +68,7 @@ def findBestMoveMinMaxNoRecursion(gs, validMoves):
     turnMultiplier = 1 if gs.whiteToMove else -1
     opponentMinMaxScore = checkMate
     bestPlayerMove = None
+    validMoves = validMoves[:]
     random.shuffle(validMoves) # randomize the order of valid moves to avoid always picking the same move
     for playerMove in validMoves:
         gs.makeMove(playerMove)
@@ -49,13 +100,17 @@ def findBestMoveMinMaxNoRecursion(gs, validMoves):
 '''
 Helper method to make the first recursive call.
 '''
-def findBestMove(gs, validMoves):
+def findBestMove(gs, validMoves, returnQueue=None):
     global nextMove, counter
     counter = 0
     nextMove = None
+    orderedMoves = validMoves[:]
+    random.shuffle(orderedMoves)
     # findMoveMinMax(gs, validMoves, DEPTH, gs.whiteToMove)
     # findMoveNegaMax(gs, validMoves, DEPTH, 1 if gs.whiteToMove else -1)
-    findMoveNegaMaxAlphaBeta(gs, validMoves, DEPTH, -checkMate, checkMate, 1 if gs.whiteToMove else -1)
+    findMoveNegaMaxAlphaBeta(gs, orderedMoves, DEPTH, -checkMate, checkMate, 1 if gs.whiteToMove else -1)
+    if returnQueue is not None:
+        returnQueue.put(nextMove)
     return nextMove
 
 def findMoveMinMax(gs, validMoves, depth, whiteToMove):
@@ -109,9 +164,10 @@ def findMoveNegaMaxAlphaBeta(gs, validMoves, depth, alpha, beta, turnMultiplier)
     counter += 1
     if depth == 0:
         return turnMultiplier * scoreBoard(gs)
-    # move ordering - implement later
+    orderedMoves = validMoves[:]
+    random.shuffle(orderedMoves)
     maxScore = -checkMate
-    for move in validMoves:
+    for move in orderedMoves:
         gs.makeMove(move)
         nextMoves = gs.getValidMoves()
         score = -findMoveNegaMaxAlphaBeta(gs, nextMoves, depth - 1, -beta, -alpha, -turnMultiplier)
@@ -138,12 +194,21 @@ def scoreBoard(gs):
     elif gs.staleMate:
         return staleMate
     score = 0
-    for row in gs.board:
-        for square in row:
-            if square[0] == 'w':
-                score += pieceScore[square[1]]
-            elif square[0] == 'b':
-                score -= pieceScore[square[1]]
+    for row in range(len(gs.board)):
+        for col in range(len(gs.board[row])):
+            square = gs.board[row][col]
+            if square != "--":
+                # score it positionally
+                piecePositionScore = 0
+                if square[1] != "K": # no position score for king because it will be moving around the board
+                    pieceKey = square if square[1] == 'p' else square[1]
+                    boardScores = piecePositionScores.get(pieceKey)
+                    if boardScores is not None and row < len(boardScores) and col < len(boardScores[row]):
+                        piecePositionScore = boardScores[row][col]
+                if square[0] == "w":
+                    score += pieceScore[square[1]] + piecePositionScore * 0.1
+                elif square[0] == "b":
+                    score -= pieceScore[square[1]] + piecePositionScore * 0.1
     return score    
     
 '''
